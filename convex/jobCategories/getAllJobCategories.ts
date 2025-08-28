@@ -7,7 +7,7 @@ import { query } from "../_generated/server";
 export const get = query({
   args: {},
   handler: async (ctx) => {
-    const categories = await ctx.db.query("jobCategory").collect();
+    const categories = await ctx.db.query("jobCategories").collect();
     return categories;
   },
 });

@@ -2,113 +2,110 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
-  documentRequirements: defineTable({
-    description: v.string(),
-    fieldName: v.string(),
-    icon: v.string(),
-    name: v.string(),
-    required: v.boolean(),
-  }).index("by_field_name", ["fieldName"]),
-  formDocuments: defineTable({
-    documentRequirementId: v.id("documentRequirements"),
-    fileId: v.id("_storage"),
-    fileName: v.string(),
-    formId: v.id("forms"),
-    remarks: v.optional(v.string()),
-    reviewAt: v.optional(v.float64()),
-    reviewBy: v.optional(v.id("users")),
-    status: v.string(),
-    uploadedAt: v.float64(),
-  })
-    .index("by_form", ["formId"])
-    .index("by_form_type", [
-      "formId",
-      "documentRequirementId",
-    ]),
-  forms: defineTable({
+  applications: defineTable({
+    adminRemarks: v.optional(v.string()),
+    applicationStatus: v.string(),
     applicationType: v.union(
       v.literal("New"),
       v.literal("Renew")
     ),
     approvedAt: v.optional(v.float64()),
     civilStatus: v.string(),
-    jobCategory: v.id("jobCategory"),
+    jobCategoryId: v.id("jobCategories"),
     organization: v.string(),
     position: v.string(),
-    remarks: v.optional(v.string()),
-    status: v.string(),
     updatedAt: v.optional(v.float64()),
     userId: v.id("users"),
   }).index("by_user", ["userId"]),
+  documentTypes: defineTable({
+    description: v.string(),
+    fieldIdentifier: v.string(),
+    icon: v.string(),
+    isRequired: v.boolean(),
+    name: v.string(),
+  }).index("by_field_identifier", ["fieldIdentifier"]),
+  documentUploads: defineTable({
+    adminRemarks: v.optional(v.string()),
+    applicationId: v.id("applications"),
+    documentTypeId: v.id("documentTypes"),
+    originalFileName: v.string(),
+    reviewStatus: v.string(),
+    reviewedAt: v.optional(v.float64()),
+    reviewedBy: v.optional(v.id("users")),
+    storageFileId: v.id("_storage"),
+    uploadedAt: v.float64(),
+  })
+    .index("by_application", ["applicationId"])
+    .index("by_application_document", [
+      "applicationId",
+      "documentTypeId",
+    ]),
   healthCards: defineTable({
+    applicationId: v.id("applications"),
     cardUrl: v.string(),
     expiresAt: v.float64(),
-    formId: v.id("forms"),
     issuedAt: v.float64(),
     verificationToken: v.string(),
   })
-    .index("by_form", ["formId"])
-    .index("by_verificationToken", ["verificationToken"]),
-  jobCategory: defineTable({
+    .index("by_application", ["applicationId"])
+    .index("by_verification_token", ["verificationToken"]),
+  jobCategories: defineTable({
     colorCode: v.string(),
     name: v.string(),
     requireOrientation: v.optional(
       v.union(v.boolean(), v.string())
     ),
   }),
-  jobCategoryRequirements: defineTable({
-    documentRequirementId: v.id("documentRequirements"),
-    jobCategoryId: v.id("jobCategory"),
-    required: v.boolean(),
+  jobCategoryDocuments: defineTable({
+    documentTypeId: v.id("documentTypes"),
+    isRequired: v.boolean(),
+    jobCategoryId: v.id("jobCategories"),
   })
-    .index("by_category", ["jobCategoryId"])
-    .index("by_requirement", ["documentRequirementId"]),
+    .index("by_document_type", ["documentTypeId"])
+    .index("by_job_category", ["jobCategoryId"]),
   notifications: defineTable({
     actionUrl: v.optional(v.string()),
-    formsId: v.optional(v.id("forms")),
+    applicationId: v.optional(v.id("applications")),
+    isRead: v.boolean(),
     message: v.string(),
-    read: v.boolean(),
+    notificationType: v.string(),
     title: v.optional(v.string()),
-    type: v.string(),
     userId: v.id("users"),
   }).index("by_user", ["userId"]),
   orientations: defineTable({
+    applicationId: v.id("applications"),
     checkInTime: v.optional(v.float64()),
     checkOutTime: v.optional(v.float64()),
-    formId: v.id("forms"),
-    qrCodeUrl: v.string(),
-    scheduleAt: v.float64(),
-    status: v.union(
+    orientationStatus: v.union(
       v.literal("Scheduled"),
       v.literal("Completed"),
       v.literal("Missed")
     ),
-    //inspectorId: v.optional(v.id("users")), // The inspector who will manage the session
-    //venue: v.optional(v.string()),         // The location of the orientation
-
-  }).index("by_form", ["formId"]),
+    qrCodeUrl: v.string(),
+    scheduledAt: v.float64(),
+  }).index("by_application", ["applicationId"]),
   payments: defineTable({
     amount: v.float64(),
-    formId: v.id("forms"),
-    method: v.union(
+    applicationId: v.id("applications"),
+    netAmount: v.float64(),
+    paymentMethod: v.union(
       v.literal("Gcash"),
       v.literal("Maya"),
       v.literal("BaranggayHall"),
       v.literal("CityHall")
     ),
-    netAmount: v.float64(),
-    receiptId: v.optional(v.id("_storage")),
-    referenceNumber: v.string(),
-    serviceFee: v.float64(),
-    status: v.union(
+    paymentStatus: v.union(
       v.literal("Pending"),
       v.literal("Complete"),
       v.literal("Failed"),
       v.literal("Refunded"),
       v.literal("Cancelled")
     ),
+    receiptStorageId: v.optional(v.id("_storage")),
+    referenceNumber: v.string(),
+    serviceFee: v.float64(),
     updatedAt: v.optional(v.float64()),
-  }).index("by_form", ["formId"]),
+  }).index("by_application", ["applicationId"]),
   users: defineTable({
     birthDate: v.optional(v.string()),
     clerkId: v.string(),
@@ -116,6 +113,9 @@ export default defineSchema({
     fullname: v.string(),
     gender: v.optional(v.string()),
     image: v.string(),
+    managedCategories: v.optional(
+      v.array(v.id("jobCategories"))
+    ),
     phoneNumber: v.optional(v.string()),
     role: v.optional(
       v.union(
@@ -124,7 +124,6 @@ export default defineSchema({
         v.literal("admin")
       )
     ),
-    managedCategories: v.optional(v.array(v.id("jobCategory"))),
     updatedAt: v.optional(v.float64()),
     username: v.string(),
   })
@@ -134,10 +133,10 @@ export default defineSchema({
     healthCardId: v.id("healthCards"),
     ipAddress: v.optional(v.string()),
     scannedAt: v.float64(),
-    status: v.union(
+    userAgent: v.optional(v.string()),
+    verificationStatus: v.union(
       v.literal("Success"),
       v.literal("Failed")
     ),
-    userAgent: v.optional(v.string()),
-  }).index("by_healthcard", ["healthCardId"]),
+  }).index("by_health_card", ["healthCardId"]),
 });

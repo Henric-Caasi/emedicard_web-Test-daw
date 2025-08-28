@@ -1,9 +1,9 @@
 import { mutation } from "../_generated/server";
 import { v } from "convex/values";
 
-export const adminReviewDocumentMutation = mutation({
+export const adminReviewDocumentUploadMutation = mutation({
   args: {
-    documentId: v.id("formDocuments"),
+    documentUploadId: v.id("documentUploads"),
     status: v.union(v.literal("Pending"), v.literal("Approved"), v.literal("Rejected")),
     remarks: v.optional(v.string()),
   },
@@ -23,22 +23,22 @@ export const adminReviewDocumentMutation = mutation({
       throw new Error("Unauthorized: Admin access required");
     }
 
-    const document = await ctx.db.get(args.documentId);
+    const document = await ctx.db.get(args.documentUploadId);
     if (!document) {
-      throw new Error("Document not found");
+      throw new Error("Document upload not found");
     }
 
-    await ctx.db.patch(args.documentId, {
-      status: args.status,
-      remarks: args.remarks,
-      reviewBy: currentUser._id,
-      reviewAt: Date.now(),
+    await ctx.db.patch(args.documentUploadId, {
+      reviewStatus: args.status,
+      adminRemarks: args.remarks,
+      reviewedBy: currentUser._id,
+      reviewedAt: Date.now(),
     });
 
-    return args.documentId;
+    return args.documentUploadId;
   },
 });
 
 
-// @deprecated - Use adminReviewDocumentMutation instead. This alias will be removed in a future release.
-export const adminReviewDocument = adminReviewDocumentMutation;
+// @deprecated - Use adminReviewDocumentUploadMutation instead. This alias will be removed in a future release.
+export const adminReviewDocument = adminReviewDocumentUploadMutation;

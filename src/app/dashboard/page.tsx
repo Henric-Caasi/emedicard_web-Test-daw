@@ -12,7 +12,7 @@ import DashboardActivityLog from '@/components/DashboardActivityLog';
 import ErrorMessage from "@/components/ErrorMessage"; // Import your new error component
 import { useRouter } from "next/navigation"; // Import the router for redirection
 
-type FormWithDetails = Doc<"forms"> & { userName: string; jobCategoryName: string; };
+type ApplicationWithDetails = Doc<"applications"> & { userName: string; jobCategoryName: string };
 
 export default function DashboardPage() {
   // --- 1. UI STATE ---
@@ -24,12 +24,12 @@ export default function DashboardPage() {
   // --- 2. DATA FETCHING ---
   const { isLoaded: isClerkLoaded, user } = useUser();
   const adminPrivileges = useQuery(api.users.roles.getAdminPrivileges); 
-  const managedJobCategories = useQuery(api.jobCategories.getManaged.get);
-  const applicants = useQuery(
-    api.forms.list,
+const managedJobCategories: Doc<"jobCategories">[] | undefined = useQuery(api.jobCategories.getAllJobCategories.get);
+const applications = useQuery(
+    api.applications.list.list,
     {
       status: statusFilter || undefined,
-      jobCategory: categoryFilter === "" ? undefined : (categoryFilter as Id<"jobCategory">),
+      jobCategory: categoryFilter === "" ? undefined : (categoryFilter as Id<"jobCategories">),
     }
   );
 
@@ -59,16 +59,16 @@ export default function DashboardPage() {
     "Cancelled": "bg-gray-500",
   };
 
-  const filteredApplicants = (applicants ?? []).filter(app => 
+  const filteredApplications = (applications ?? []).filter((app: ApplicationWithDetails) =>
     app.userName?.toLowerCase().includes(search.toLowerCase())
   );
-  const totalPending = (applicants ?? []).filter(a => a.status === 'Submitted').length;
-  const totalApproved = (applicants ?? []).filter(a => a.status === 'Approved').length;
-  const totalRejected = (applicants ?? []).filter(a => a.status === 'Rejected').length;
+  const totalPending = (applications ?? []).filter((a: ApplicationWithDetails) => a.applicationStatus === 'Submitted').length;
+  const totalApproved = (applications ?? []).filter((a: ApplicationWithDetails) => a.applicationStatus === 'Approved').length;
+  const totalRejected = (applications ?? []).filter((a: ApplicationWithDetails) => a.applicationStatus === 'Rejected').length;
   // NEW STATS from prototype, adapted to Convex data
-  const totalForDocVerification = (applicants ?? []).filter(a => a.status === 'For Document Verification').length;
-  const totalForPaymentValidation = (applicants ?? []).filter(a => a.status === 'For Payment Validation').length;
-  const totalForOrientation = (applicants ?? []).filter(a => a.status === 'For Orientation').length;
+  const totalForDocVerification = (applications ?? []).filter((a: ApplicationWithDetails) => a.applicationStatus === 'For Document Verification').length;
+  const totalForPaymentValidation = (applications ?? []).filter((a: ApplicationWithDetails) => a.applicationStatus === 'For Payment Validation').length;
+  const totalForOrientation = (applications ?? []).filter((a: ApplicationWithDetails) => a.applicationStatus === 'For Orientation').length;
 
 
   // --- 5. LOADING & GUARD CLAUSES ---
@@ -141,7 +141,7 @@ export default function DashboardPage() {
                 disabled={managedJobCategories === undefined}
               >
                 {adminPrivileges.managedCategories === "all" && <option value="">All Categories</option>}
-                {managedJobCategories?.map((cat: Doc<"jobCategory">) => ( <option key={cat._id} value={cat._id.toString()}>{cat.name}</option>
+                {managedJobCategories?.map((cat: Doc<"jobCategories">) => ( <option key={cat._id} value={cat._id.toString()}>{cat.name}</option>
                 ))}
               </select>
             </div>
@@ -191,20 +191,20 @@ export default function DashboardPage() {
             </thead>
             <tbody>
               {/* Improved loading and empty state */}
-              {applicants === undefined && (
+              {applications === undefined && (
                 <tr><td colSpan={5} className="text-center py-8 text-gray-400">Loading applicants...</td></tr>
               )}
-              {applicants && filteredApplicants.length === 0 && (
+              {applications && filteredApplications.length === 0 && (
                 <tr><td colSpan={5} className="text-center py-8 text-gray-400">No applicants found.</td></tr>
               )}
-              {applicants && filteredApplicants.map((app) => (
+              {applications && filteredApplications.map((app: ApplicationWithDetails) => (
                 <tr key={app._id} className="border-b last:border-none hover:bg-gray-50">
                   <td className="px-6 text-black py-4">{app.userName}</td>
                   <td className="px-6 text-black py-4">{app.jobCategoryName}</td>
                   <td className="px-6 text-black py-4">{new Date(app._creationTime).toLocaleDateString()}</td>
                   <td className="px-6 py-4">
-                    <span className={`text-white px-3 py-1 rounded-full text-xs font-semibold ${statusColors[app.status] || 'bg-gray-400'}`}>
-                      {app.status}
+                    <span className={`text-white px-3 py-1 rounded-full text-xs font-semibold ${statusColors[app.applicationStatus] || 'bg-gray-400'}`}>
+                      {app.applicationStatus}
                     </span>
                   </td>
                   <td className="px-6 py-4">

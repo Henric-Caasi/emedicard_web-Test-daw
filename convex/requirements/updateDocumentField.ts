@@ -2,18 +2,18 @@ import { mutation } from "../_generated/server";
 import { v } from "convex/values";
 
 // Update a document field (replacement document)
-export const updateDocumentFieldMutation = mutation({
+export const updateDocumentUploadFieldMutation = mutation({
   args: {
-    formId: v.id("forms"),
-    fieldName: v.string(),
-    storageId: v.id("_storage"),
-    fileName: v.string(),
+    applicationId: v.id("applications"),
+    documentTypeId: v.id("documentTypes"),
+    storageFileId: v.id("_storage"),
+    originalFileName: v.string(),
     fileType: v.string(),
     fileSize: v.number(),
-    status: v.optional(v.union(v.literal("Pending"), v.literal("Approved"), v.literal("Rejected"))),
-    reviewBy: v.optional(v.id("users")),
-    reviewAt: v.optional(v.number()),
-    remarks: v.optional(v.string()),
+    reviewStatus: v.optional(v.union(v.literal("Pending"), v.literal("Approved"), v.literal("Rejected"))),
+    reviewedBy: v.optional(v.id("users")),
+    reviewedAt: v.optional(v.number()),
+    adminRemarks: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -21,10 +21,10 @@ export const updateDocumentFieldMutation = mutation({
       throw new Error("Not authenticated");
     }
 
-    // Verify form exists and user owns it
-    const form = await ctx.db.get(args.formId);
-    if (!form) {
-      throw new Error("Form not found");
+    // Verify application exists and user owns it
+    const application = await ctx.db.get(args.applicationId);
+    if (!application) {
+      throw new Error("Application not found");
     }
 
     const user = await ctx.db
@@ -32,55 +32,44 @@ export const updateDocumentFieldMutation = mutation({
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
       .unique();
 
-    if (!user || form.userId !== user._id) {
-      throw new Error("Not authorized to update documents for this form");
+    if (!user || application.userId !== user._id) {
+      throw new Error("Not authorized to update document uploads for this application");
     }
 
-    // Find the document requirement by fieldName
-    const docRequirement = await ctx.db
-      .query("documentRequirements")
-      .withIndex("by_field_name", (q) => q.eq("fieldName", args.fieldName))
-      .unique();
-    
-    if (!docRequirement) {
-      throw new Error(`Document requirement not found for field: ${args.fieldName}`);
-    }
-
-    // Find existing document for this form and documentRequirementId
-    const existingDoc = await ctx.db
-      .query("formDocuments")
-      .withIndex("by_form_type", (q) => q.eq("formId", args.formId).eq("documentRequirementId", docRequirement._id))
+    // Find existing document upload for this application and documentTypeId
+    const existingDocUpload = await ctx.db
+      .query("documentUploads")
+      .withIndex("by_application_document", (q) => q.eq("applicationId", args.applicationId).eq("documentTypeId", args.documentTypeId))
       .unique();
 
-    if (!existingDoc) {
-      throw new Error("Document not found to update");
+    if (!existingDocUpload) {
+      throw new Error("Document upload not found to update");
     }
 
     // Delete old file from storage
-    await ctx.storage.delete(existingDoc.fileId);
+    await ctx.storage.delete(existingDocUpload.storageFileId);
 
     // Update document record
-    await ctx.db.patch(existingDoc._id, {
-      fileName: args.fileName,
-      fileId: args.storageId,
+    await ctx.db.patch(existingDocUpload._id, {
+      originalFileName: args.originalFileName,
+      storageFileId: args.storageFileId,
       uploadedAt: Date.now(),
-      status: args.status || "Pending",
-      remarks: args.remarks,
-      reviewBy: args.reviewBy,
-      reviewAt: args.reviewAt,
+      reviewStatus: args.reviewStatus || "Pending",
+      adminRemarks: args.adminRemarks,
+      reviewedBy: args.reviewedBy,
+      reviewedAt: args.reviewedAt,
     });
 
     return {
-      requirementId: docRequirement._id,
-      fieldName: args.fieldName,
-      storageId: args.storageId,
-      fileName: args.fileName,
+      documentTypeId: args.documentTypeId,
+      originalFileName: args.originalFileName,
+      storageFileId: args.storageFileId,
       fileType: args.fileType,
       fileSize: args.fileSize,
-      status: args.status || "Pending",
-      reviewBy: args.reviewBy,
-      reviewAt: args.reviewAt,
-      remarks: args.remarks,
+      reviewStatus: args.reviewStatus || "Pending",
+      reviewedBy: args.reviewedBy,
+      reviewedAt: args.reviewedAt,
+      adminRemarks: args.adminRemarks,
     };
   },
 });

@@ -2,9 +2,9 @@ import { query } from "../_generated/server";
 import { v } from "convex/values";
 
 // Get document URL from storage
-export const getDocumentUrlQuery = query({
+export const getDocumentUploadUrlQuery = query({
   args: {
-    documentId: v.id("formDocuments"),
+    documentUploadId: v.id("documentUploads"),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -12,25 +12,25 @@ export const getDocumentUrlQuery = query({
       throw new Error("Not authenticated");
     }
 
-    const document = await ctx.db.get(args.documentId);
-    if (!document) {
-      throw new Error("Document not found");
+    const documentUpload = await ctx.db.get(args.documentUploadId);
+    if (!documentUpload) {
+      throw new Error("Document upload not found");
     }
 
     // Get file URL from storage
-    const fileUrl = await ctx.storage.getUrl(document.fileId);
+    const fileUrl = await ctx.storage.getUrl(documentUpload.storageFileId);
     
     return {
-      documentId: args.documentId,
-      fileName: document.fileName,
+      documentUploadId: args.documentUploadId,
+      fileName: documentUpload.originalFileName,
       url: fileUrl,
-      status: document.status,
-      uploadedAt: document.uploadedAt,
-      remarks: document.remarks,
+      status: documentUpload.reviewStatus,
+      uploadedAt: documentUpload.uploadedAt,
+      remarks: documentUpload.adminRemarks,
     };
   },
 });
 
 
-// @deprecated - Use getDocumentUrlQuery instead. This alias will be removed in a future release.
-export const queryDocumentUrl = getDocumentUrlQuery;
+// @deprecated - Use getDocumentUploadUrlQuery instead. This alias will be removed in a future release.
+export const queryDocumentUrl = getDocumentUploadUrlQuery;

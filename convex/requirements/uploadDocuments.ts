@@ -2,18 +2,18 @@ import { mutation } from "../_generated/server";
 import { v } from "convex/values";
 
 // Upload a single document using the new formDocuments schema
-export const uploadDocumentsMutation = mutation({
+export const uploadDocumentUploadsMutation = mutation({
   args: {
-    formId: v.id("forms"),
-    fieldName: v.string(),
-    storageId: v.id("_storage"),
-    fileName: v.string(),
+    applicationId: v.id("applications"),
+    documentTypeId: v.id("documentTypes"),
+    storageFileId: v.id("_storage"),
+    originalFileName: v.string(),
     fileType: v.string(),
     fileSize: v.number(),
-    status: v.optional(v.union(v.literal("Pending"), v.literal("Approved"), v.literal("Rejected"))),
-    reviewBy: v.optional(v.id("users")),
-    reviewAt: v.optional(v.number()),
-    remarks: v.optional(v.string()),
+    reviewStatus: v.optional(v.union(v.literal("Pending"), v.literal("Approved"), v.literal("Rejected"))),
+    reviewedBy: v.optional(v.id("users")),
+    reviewedAt: v.optional(v.number()),
+    adminRemarks: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -21,10 +21,10 @@ export const uploadDocumentsMutation = mutation({
       throw new Error("Not authenticated");
     }
 
-    // Verify form exists and user owns it
-    const form = await ctx.db.get(args.formId);
-    if (!form) {
-      throw new Error("Form not found");
+    // Verify application exists and user owns it
+    const application = await ctx.db.get(args.applicationId);
+    if (!application) {
+      throw new Error("Application not found");
     }
 
     const user = await ctx.db
@@ -32,76 +32,64 @@ export const uploadDocumentsMutation = mutation({
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
       .unique();
 
-    if (!user || form.userId !== user._id) {
-      throw new Error("Not authorized to upload documents for this form");
+    if (!user || application.userId !== user._id) {
+      throw new Error("Not authorized to upload document uploads for this application");
     }
 
-    // Find the document requirement by fieldName
-    const docRequirement = await ctx.db
-      .query("documentRequirements")
-      .withIndex("by_field_name", (q) => q.eq("fieldName", args.fieldName))
-      .unique();
-    
-    if (!docRequirement) {
-      throw new Error(`Document requirement not found for field: ${args.fieldName}`);
-    }
-
-    // Check if document already exists for this form and documentRequirementId
-    const existingDoc = await ctx.db
-      .query("formDocuments")
-      .withIndex("by_form_type", (q) => q.eq("formId", args.formId).eq("documentRequirementId", docRequirement._id))
+    // Check if document upload already exists for this application and documentTypeId
+    const existingDocUpload = await ctx.db
+      .query("documentUploads")
+      .withIndex("by_application_document", (q) => q.eq("applicationId", args.applicationId).eq("documentTypeId", args.documentTypeId))
       .unique();
 
-    if (existingDoc) {
-      // Update existing document
-      await ctx.db.patch(existingDoc._id, {
-        documentRequirementId: docRequirement._id,
-        fileName: args.fileName,
-        fileId: args.storageId,
+    if (existingDocUpload) {
+      // Update existing document upload
+      await ctx.db.patch(existingDocUpload._id, {
+        documentTypeId: args.documentTypeId,
+        originalFileName: args.originalFileName,
+        storageFileId: args.storageFileId,
         uploadedAt: Date.now(),
-        status: args.status || "Pending",
-        remarks: args.remarks,
-        reviewBy: args.reviewBy,
-        reviewAt: args.reviewAt,
+        reviewStatus: args.reviewStatus || "Pending",
+        adminRemarks: args.adminRemarks,
+        reviewedBy: args.reviewedBy,
+        reviewedAt: args.reviewedAt,
       });
       
       return {
-        requirementId: docRequirement._id,
-        fieldName: args.fieldName,
-        storageId: args.storageId,
-        fileName: args.fileName,
+        documentTypeId: args.documentTypeId,
+        originalFileName: args.originalFileName,
+        storageFileId: args.storageFileId,
         fileType: args.fileType,
         fileSize: args.fileSize,
-        status: args.status || "Pending",
-        reviewBy: args.reviewBy,
-        reviewAt: args.reviewAt,
-        remarks: args.remarks,
+        reviewStatus: args.reviewStatus || "Pending",
+        reviewedBy: args.reviewedBy,
+        reviewedAt: args.reviewedAt,
+        adminRemarks: args.adminRemarks,
       };
     } else {
-      // Create new document record
-      await ctx.db.insert("formDocuments", {
-        formId: args.formId,
-        documentRequirementId: docRequirement._id,
-        fileName: args.fileName,
-        fileId: args.storageId,
+      // Create new document upload record
+      await ctx.db.insert("documentUploads", {
+        applicationId: args.applicationId,
+        documentTypeId: args.documentTypeId,
+        originalFileName: args.originalFileName,
+        storageFileId: args.storageFileId,
         uploadedAt: Date.now(),
-        status: args.status || "Pending",
-        remarks: args.remarks,
-        reviewBy: args.reviewBy,
-        reviewAt: args.reviewAt,
+        reviewStatus: args.reviewStatus || "Pending",
+        adminRemarks: args.adminRemarks,
+        reviewedBy: args.reviewedBy,
+        reviewedAt: args.reviewedAt,
       });
       
       return {
-        requirementId: docRequirement._id,
-        fieldName: args.fieldName,
-        storageId: args.storageId,
-        fileName: args.fileName,
+        documentTypeId: args.documentTypeId,
+        originalFileName: args.originalFileName,
+        storageFileId: args.storageFileId,
         fileType: args.fileType,
         fileSize: args.fileSize,
-        status: args.status || "Pending",
-        reviewBy: args.reviewBy,
-        reviewAt: args.reviewAt,
-        remarks: args.remarks,
+        reviewStatus: args.reviewStatus || "Pending",
+        reviewedBy: args.reviewedBy,
+        reviewedAt: args.reviewedAt,
+        adminRemarks: args.adminRemarks,
       };
     }
   },

@@ -50,21 +50,21 @@ export const updateApplicantStatus = mutation({
       throw new Error("You do not have permission to update applicant status.");
     }
 
-    const existingForm = await ctx.db.query("forms").withIndex("by_user", q => q.eq("userId", userId)).first();
+    const existingForm = await ctx.db.query("applications").withIndex("by_user", q => q.eq("userId", userId)).first();
 
     if (!existingForm) {
-      throw new Error("Applicant form not found.");
+      throw new Error("Applicant application not found.");
     }
 
-    await ctx.db.patch(existingForm._id, { status, remarks });
+    await ctx.db.patch(existingForm._id, { applicationStatus: status, adminRemarks: remarks });
 
     // Optionally, create a notification for the applicant
     await ctx.db.insert("notifications", {
       userId,
       title: "Application Status Updated",
       message: `Your application status has been updated to: ${status}`,
-      type: "status_update",
-      read: false,
+      notificationType: "status_update",
+      isRead: false,
     });
 
     return { success: true };
@@ -76,11 +76,11 @@ export const updateApplicantStatus = mutation({
 // =================================================================
 export const verifyDocument = mutation({
   args: {
-    formDocumentId: v.id("formDocuments"),
+    documentUploadId: v.id("documentUploads"),
     status: v.union(v.literal("Approved"), v.literal("Rejected")),
     remarks: v.optional(v.string()),
   },
-  handler: async (ctx, { formDocumentId, status, remarks }) => {
+  handler: async (ctx, { documentUploadId, status, remarks }) => {
     const adminCheck = await AdminRole(ctx);
     if (!adminCheck.isAdmin) {
       throw new Error("You do not have permission to verify documents.");
@@ -92,7 +92,7 @@ export const verifyDocument = mutation({
     const user = await ctx.db.query("users").withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject)).unique();
     if (!user) throw new Error("User not found.");
 
-    await ctx.db.patch(formDocumentId, { status, remarks, reviewAt: Date.now(), reviewBy: user._id });
+    await ctx.db.patch(documentUploadId, { reviewStatus: status, adminRemarks: remarks, reviewedAt: Date.now(), reviewedBy: user._id });
     return { success: true };
   },
 });
@@ -102,23 +102,23 @@ export const verifyDocument = mutation({
 // =================================================================
 export const scheduleOrientation = mutation({
   args: {
-    formId: v.id("forms"),
+    applicationId: v.id("applications"),
     scheduleAt: v.float64(),
     venue: v.string(),
     inspectorId: v.id("users"),
   },
-  handler: async (ctx, { formId, scheduleAt, venue, inspectorId }) => {
+  handler: async (ctx, { applicationId, scheduleAt, venue, inspectorId }) => {
     const adminCheck = await AdminRole(ctx);
     if (!adminCheck.isAdmin) {
       throw new Error("You do not have permission to schedule orientations.");
     }
 
     await ctx.db.insert("orientations", {
-      formId,
-      scheduleAt,
+      applicationId,
+      scheduledAt: scheduleAt,
       //venue,
       //inspectorId,
-      status: "Scheduled",
+      orientationStatus: "Scheduled",
       qrCodeUrl: "temp-qr-code", // Replace with actual QR code generation logic
     });
 
@@ -140,7 +140,7 @@ export const trackOrientationAttendance = mutation({
       throw new Error("You do not have permission to track attendance.");
     }
 
-    await ctx.db.patch(orientationId, { status });
+    await ctx.db.patch(orientationId, { orientationStatus: status });
     return { success: true };
   },
 });
@@ -216,17 +216,17 @@ export const getApplicantsByManagedCategories = query({
     if (!user || user.role !== "admin" || !user.managedCategories) {
       // Return all applicants if the user is not an admin or has no managed categories
       return await ctx.db
-        .query("forms")
+        .query("applications")
         .order("desc")
         .collect();
     }
 
-    const forms = await ctx.db
-      .query("forms")
+    const applications = await ctx.db
+      .query("applications")
       .filter((q) =>
         q.or(
           ...user.managedCategories!.map((categoryId) =>
-            q.eq(q.field("jobCategory"), categoryId)
+            q.eq(q.field("jobCategoryId"), categoryId)
           )
         )
       )

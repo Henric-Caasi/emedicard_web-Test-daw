@@ -4,7 +4,7 @@ import { mutation } from "../_generated/server";
 export const createFormMutation = mutation({
   args: {
     applicationType: v.union(v.literal("New"), v.literal("Renew")),
-    jobCategory: v.id("jobCategory"),
+    jobCategoryId: v.id("jobCategories"),
     position: v.string(),
     organization: v.string(),
     civilStatus: v.string(),
@@ -24,14 +24,14 @@ export const createFormMutation = mutation({
       throw new Error("User not found. Please make sure your profile is set up.");
     }
 
-    const formId = await ctx.db.insert("forms", {
+    const formId = await ctx.db.insert("applications", {
       userId: user._id,
       applicationType: args.applicationType,
-      jobCategory: args.jobCategory,
+      jobCategoryId: args.jobCategoryId,
       position: args.position,
       organization: args.organization,
       civilStatus: args.civilStatus,
-      status: "Submitted",
+      applicationStatus: "Submitted",
     });
 
     return formId;

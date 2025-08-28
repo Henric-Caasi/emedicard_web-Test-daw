@@ -14,16 +14,16 @@ export const getByDate = query({
       .query("orientations")
       .filter((q) =>
         q.and(
-          q.gte(q.field("scheduleAt"), startOfDay.getTime()),
-          q.lte(q.field("scheduleAt"), endOfDay.getTime())
+          q.gte(q.field("scheduledAt"), startOfDay.getTime()),
+          q.lte(q.field("scheduledAt"), endOfDay.getTime())
         )
       )
       .collect();
 
     return Promise.all(
       orientations.map(async (orientation) => {
-        const form = await ctx.db.get(orientation.formId);
-        const user = form ? await ctx.db.get(form.userId) : null;
+        const application = await ctx.db.get(orientation.applicationId);
+        const user = application ? await ctx.db.get(application.userId) : null;
         return {
           ...orientation,
           userName: user?.fullname ?? "Unknown User",

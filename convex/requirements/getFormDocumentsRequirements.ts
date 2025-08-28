@@ -2,67 +2,67 @@ import { query } from "../_generated/server";
 import { v } from "convex/values";
 
 // Get form documents with comprehensive requirements info
-export const getFormDocumentsRequirementsQuery = query({
-  args: { formId: v.id("forms") },
+export const getDocumentUploadsRequirementsQuery = query({
+  args: { applicationId: v.id("applications") },
   handler: async (ctx, args) => {
-    const form = await ctx.db.get(args.formId);
-    if (!form) {
-      throw new Error("Form not found");
+    const application = await ctx.db.get(args.applicationId);
+    if (!application) {
+      throw new Error("Application not found");
     }
 
-    const jobCategory = await ctx.db.get(form.jobCategory);
+    const jobCategory = await ctx.db.get(application.jobCategoryId);
     if (!jobCategory) {
       throw new Error("Job category not found");
     }
 
     // Get uploaded documents
     const uploadedDocuments = await ctx.db
-      .query("formDocuments")
-      .withIndex("by_form", (q) => q.eq("formId", args.formId))
+      .query("documentUploads")
+      .withIndex("by_application", (q) => q.eq("applicationId", args.applicationId))
       .collect();
 
-    // Get document requirements for this job category
-    const jobCategoryRequirements = await ctx.db
-      .query("jobCategoryRequirements")
-      .withIndex("by_category", (q) => q.eq("jobCategoryId", form.jobCategory))
+    // Get document types for this job category
+    const jobCategoryDocuments = await ctx.db
+      .query("jobCategoryDocuments")
+      .withIndex("by_job_category", (q) => q.eq("jobCategoryId", application.jobCategoryId))
       .collect();
 
-    // Get detailed document requirements with junction data
-    const documentRequirements = await Promise.all(
-      jobCategoryRequirements.map(async (junctionRecord) => {
-        const docRequirement = await ctx.db.get(junctionRecord.documentRequirementId);
-        if (!docRequirement) {
-          throw new Error(`Document requirement ${junctionRecord.documentRequirementId} not found`);
+    // Get detailed document types with junction data
+    const documentTypes = await Promise.all(
+      jobCategoryDocuments.map(async (junctionRecord) => {
+        const documentType = await ctx.db.get(junctionRecord.documentTypeId);
+        if (!documentType) {
+          throw new Error(`Document type ${junctionRecord.documentTypeId} not found`);
         }
         return {
-          ...docRequirement,
-          required: junctionRecord.required, // Override with junction table's required field
+          ...documentType,
+          isRequired: junctionRecord.isRequired, // Override with junction table's isRequired field
           junctionId: junctionRecord._id // Include junction record ID if needed
         };
       })
     );
 
-    // Map uploaded documents with their requirements
-    const documentsWithRequirements = await Promise.all(
+    // Map uploaded documents with their types
+    const documentsWithTypes = await Promise.all(
       uploadedDocuments.map(async (doc) => {
-        const requirement = await ctx.db.get(doc.documentRequirementId);
-        const fileUrl = doc.fileId ? await ctx.storage.getUrl(doc.fileId) : null; // Fetch file URL
+        const documentType = await ctx.db.get(doc.documentTypeId);
+        const fileUrl = doc.storageFileId ? await ctx.storage.getUrl(doc.storageFileId) : null; // Fetch file URL
 
         return {
           ...doc,
-          requirement,
+          documentType,
           fileUrl, // Add fileUrl
-          documentName: requirement?.name ?? "Unknown Document", // Add documentName
+          documentName: documentType?.name ?? "Unknown Document", // Add documentName
         };
       })
     );
 
     return {
-      form,
+      application,
       jobCategory,
-      uploadedDocuments: documentsWithRequirements,
-      requiredDocuments: documentRequirements,
-      totalRequired: documentRequirements.length,
+      uploadedDocuments: documentsWithTypes,
+      requiredDocuments: documentTypes,
+      totalRequired: documentTypes.length,
       totalUploaded: uploadedDocuments.length,
     };
   },

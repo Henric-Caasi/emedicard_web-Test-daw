@@ -2,10 +2,10 @@ import { mutation } from "../_generated/server";
 import { v } from "convex/values";
 
 // Admin mutation to batch review multiple documents
-export const adminBatchReviewDocumentsMutation = mutation({
+export const adminBatchReviewDocumentUploadsMutation = mutation({
   args: {
     reviews: v.array(v.object({
-      documentId: v.id("formDocuments"),
+      documentUploadId: v.id("documentUploads"),
       status: v.union(v.literal("Pending"), v.literal("Approved"), v.literal("Rejected")),
       remarks: v.optional(v.string()),
     })),
@@ -31,23 +31,23 @@ export const adminBatchReviewDocumentsMutation = mutation({
 
     for (const review of args.reviews) {
       try {
-        const document = await ctx.db.get(review.documentId);
+        const document = await ctx.db.get(review.documentUploadId);
         if (!document) {
-          errors.push({ documentId: review.documentId, error: "Document not found" });
+          errors.push({ documentUploadId: review.documentUploadId, error: "Document upload not found" });
           continue;
         }
 
-        await ctx.db.patch(review.documentId, {
-          status: review.status,
-          remarks: review.remarks,
-          reviewBy: currentUser._id,
-          reviewAt: Date.now(),
+        await ctx.db.patch(review.documentUploadId, {
+          reviewStatus: review.status,
+          adminRemarks: review.remarks,
+          reviewedBy: currentUser._id,
+          reviewedAt: Date.now(),
         });
 
-        reviewedDocumentIds.push(review.documentId);
+        reviewedDocumentIds.push(review.documentUploadId);
       } catch (error) {
         errors.push({
-          documentId: review.documentId,
+          documentUploadId: review.documentUploadId,
           error: error instanceof Error ? error.message : "Unknown error",
         });
       }
@@ -64,5 +64,5 @@ export const adminBatchReviewDocumentsMutation = mutation({
 
 
 
-// @deprecated - Use adminBatchReviewDocumentsMutation instead. This alias will be removed in a future release.
-export const adminBatchReviewDocuments = adminBatchReviewDocumentsMutation;
+// @deprecated - Use adminBatchReviewDocumentUploadsMutation instead. This alias will be removed in a future release.
+export const adminBatchReviewDocuments = adminBatchReviewDocumentUploadsMutation;

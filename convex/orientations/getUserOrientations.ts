@@ -20,7 +20,7 @@ export const getUserOrientationsQuery = query({
     // For now, return empty array - implement actual orientation logic later
     // const orientations = await ctx.db
     //   .query("orientations")
-    //   .withIndex("by_user", (q) => q.eq("userId", user._id))
+    //   .withIndex("by_application", (q) => q.eq("applicationId", user._id)) // Assuming a user can have multiple applications, and orientations are linked to applications
     //   .collect();
 
     return [];

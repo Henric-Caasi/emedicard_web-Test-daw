@@ -2,12 +2,12 @@ import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { AdminRole } from "./users/roles";
 
-export const getByForm = query({
-  args: { formId: v.id("forms") },
-  handler: async (ctx, { formId }) => {
+export const getByApplication = query({
+  args: { applicationId: v.id("applications") },
+  handler: async (ctx, { applicationId }) => {
     return await ctx.db
       .query("payments")
-      .withIndex("by_form", (q) => q.eq("formId", formId))
+      .withIndex("by_application", (q) => q.eq("applicationId", applicationId))
       .first();
   },
 });
@@ -23,7 +23,7 @@ export const updateStatus = mutation({
       throw new Error("You do not have permission to update payment status.");
     }
 
-    await ctx.db.patch(paymentId, { status });
+    await ctx.db.patch(paymentId, { paymentStatus: status });
     return { success: true };
   },
 });
