@@ -1,5 +1,6 @@
 import { mutation } from "../_generated/server";
 import { v } from "convex/values";
+import { Doc } from "../_generated/dataModel";
 
 // Enhanced QR scanning with location and device tracking
 export const logQRScanMutation = mutation({
@@ -23,7 +24,7 @@ export const logQRScanMutation = mutation({
       // Find health card by verification token
       const healthCard = await ctx.db
         .query("healthCards")
-        .withIndex("by_verificationToken", (q) => q.eq("verificationToken", args.verificationToken))
+        .withIndex("by_verification_token", (q) => q.eq("verificationToken", args.verificationToken))
         .unique();
 
       if (!healthCard) {
@@ -42,13 +43,13 @@ export const logQRScanMutation = mutation({
         scannedAt: currentTime,
         userAgent: args.userAgent,
         ipAddress: args.ipAddress,
-        status: "Success",
+        verificationStatus: "Success",
       });
 
       // Get form and user details for the response
-      const form = await ctx.db.get(healthCard.formId);
-      const user = form ? await ctx.db.get(form.userId) : null;
-      const jobCategory = form ? await ctx.db.get(form.jobCategory) : null;
+      const form = await ctx.db.get(healthCard.applicationId) as Doc<"applications"> | null;
+      const user = form ? await ctx.db.get(form.userId) as Doc<"users"> | null : null;
+      const jobCategory = form ? await ctx.db.get(form.jobCategoryId) as Doc<"jobCategories"> | null : null;
 
       return {
         logId,

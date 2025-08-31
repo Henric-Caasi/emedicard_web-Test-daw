@@ -64,14 +64,14 @@ export const setUserRole = mutation({
 export const migrateFormsAddStatus = mutation({
   args: {},
   handler: async (ctx) => {
-    const forms = await ctx.db.query("forms").collect();
+    const forms = await ctx.db.query("applications").collect();
     
     let migratedCount = 0;
     
     for (const form of forms) {
       // If form doesn't have a status field, add it with default 'Submitted'
-      if (!form.status) {
-        await ctx.db.patch(form._id, { status: "Submitted" });
+      if (!form.applicationStatus) {
+        await ctx.db.patch(form._id, { applicationStatus: "Submitted" });
         migratedCount++;
       }
     }
@@ -89,7 +89,7 @@ export const migrateFormsAddStatus = mutation({
 export const migrateJobCategoryRequireOrientation = mutation({
   args: {},
   handler: async (ctx) => {
-    const jobCategories = await ctx.db.query("jobCategory").collect();
+    const jobCategories = await ctx.db.query("jobCategories").collect();
     
     let migratedCount = 0;
     
@@ -128,7 +128,7 @@ export const migrateNotificationsAddTitle = mutation({
       // If notification doesn't have a title field, add a default one based on type
       if (!notification.title) {
         let title = "Notification";
-        switch (notification.type) {
+        switch (notification.notificationType) {
           case "PaymentReceived":
             title = "Payment Update";
             break;
@@ -169,8 +169,8 @@ export const cleanupDatabase = mutation({
     console.log("🧹 Cleaning up database for schema compliance...");
     
     // Get all forms and check for any other schema issues
-    const forms = await ctx.db.query("forms").collect();
-    const formDocuments = await ctx.db.query("formDocuments").collect();
+    const forms = await ctx.db.query("applications").collect();
+    const formDocuments = await ctx.db.query("documentUploads").collect();
     
     let deletedDocs = 0;
     
@@ -205,11 +205,11 @@ export const resetDatabase = mutation({
       "healthCards", 
       "orientations",
       "payments",
-      "formDocuments",
-      "forms",
-      "jobCategoryRequirements",
-      "documentRequirements",
-      "jobCategory",
+      "documentUploads",
+      "applications",
+      "jobCategoryDocuments",
+      "documentTypes",
+      "jobCategories",
       "notifications"
     ];
     

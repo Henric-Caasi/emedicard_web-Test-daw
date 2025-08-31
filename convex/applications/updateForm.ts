@@ -1,15 +1,16 @@
 import { v } from "convex/values";
 import { mutation } from "../_generated/server";
+import { Doc } from "../_generated/dataModel";
 
 export const updateFormMutation = mutation({
   args: {
-    formId: v.id("forms"),
+    formId: v.id("applications"),
     applicationType: v.optional(v.union(v.literal("New"), v.literal("Renew"))),
-    jobCategory: v.optional(v.id("jobCategory")),
+    jobCategoryId: v.optional(v.id("jobCategories")),
     position: v.optional(v.string()),
     organization: v.optional(v.string()),
     civilStatus: v.optional(v.string()),
-    status: v.optional(v.string()),
+    applicationStatus: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const { formId, ...updates } = args;
@@ -19,7 +20,7 @@ export const updateFormMutation = mutation({
       throw new Error("Not authenticated");
     }
 
-    const form = await ctx.db.get(formId);
+    const form = await ctx.db.get(formId) as Doc<"applications"> | null;
     if (!form) {
       throw new Error("Form not found");
     }

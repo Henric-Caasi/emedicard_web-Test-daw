@@ -1,9 +1,10 @@
 import { query, mutation } from "../_generated/server";
 import { v } from "convex/values";
+import { Doc } from "../_generated/dataModel";
 
 export const submitApplicationFormMutation = mutation({
   args: {
-    formId: v.id("forms"),
+    formId: v.id("applications"),
     paymentMethod: v.union(
       v.literal("Gcash"),
       v.literal("Maya"),
@@ -30,7 +31,7 @@ export const submitApplicationFormMutation = mutation({
     }
 
     // Validate form exists and belongs to user
-    const form = await ctx.db.get(args.formId);
+    const form = await ctx.db.get(args.formId) as Doc<"applications"> | null;
     if (!form) {
       throw new Error("Form not found");
     }
@@ -40,46 +41,46 @@ export const submitApplicationFormMutation = mutation({
     }
 
     // Check if form is already submitted
-    if (form.status === "Submitted" || form.status === "Under Review" || form.status === "Approved") {
+    if (form.applicationStatus === "Submitted" || form.applicationStatus === "Under Review" || form.applicationStatus === "Approved") {
       throw new Error("Application has already been submitted");
     }
 
     // Get job category
-    const jobCategory = await ctx.db.get(form.jobCategory);
+    const jobCategory = await ctx.db.get(form.jobCategoryId) as Doc<"jobCategories"> | null;
     if (!jobCategory) {
       throw new Error("Invalid job category");
     }
 
     // Get required document types for this job category using junction table
     const jobCategoryRequirements = await ctx.db
-      .query("jobCategoryRequirements")
-      .withIndex("by_category", (q) => q.eq("jobCategoryId", form.jobCategory))
-      .filter((q) => q.eq(q.field("required"), true))
+      .query("jobCategoryDocuments")
+      .withIndex("by_job_category", (q) => q.eq("jobCategoryId", form.jobCategoryId))
+      .filter((q) => q.eq(q.field("isRequired"), true))
       .collect();
 
     // Get detailed document requirements from junction table
     const requiredDocuments = await Promise.all(
       jobCategoryRequirements.map(async (junctionRecord) => {
-        const docRequirement = await ctx.db.get(junctionRecord.documentRequirementId);
+        const docRequirement = await ctx.db.get(junctionRecord.documentTypeId) as Doc<"documentTypes"> | null;
         if (!docRequirement) {
-          throw new Error(`Document requirement ${junctionRecord.documentRequirementId} not found`);
+          throw new Error(`Document requirement ${junctionRecord.documentTypeId} not found`);
         }
         return {
           ...docRequirement,
-          required: junctionRecord.required // Use required status from junction table
+          isRequired: junctionRecord.isRequired // Use required status from junction table
         };
       })
     );
 
     // Get uploaded documents for this form
     const uploadedDocuments = await ctx.db
-      .query("formDocuments")
-      .withIndex("by_form", (q) => q.eq("formId", args.formId))
+      .query("documentUploads")
+      .withIndex("by_application", (q) => q.eq("applicationId", args.formId))
       .collect();
 
     // Check if all required documents are uploaded
     for (const reqDoc of requiredDocuments) {
-      const uploadedDoc = uploadedDocuments.find(d => d.documentRequirementId === reqDoc._id);
+      const uploadedDoc = uploadedDocuments.find(d => d.documentTypeId === reqDoc._id);
       if (!uploadedDoc) {
         throw new Error(`Missing required document: ${reqDoc.name}. Please upload all required documents.`);
       }
@@ -88,7 +89,7 @@ export const submitApplicationFormMutation = mutation({
     // Check if payment already exists
     const existingPayment = await ctx.db
       .query("payments")
-      .withIndex("by_form", (q) => q.eq("formId", args.formId))
+      .withIndex("by_application", (q) => q.eq("applicationId", args.formId))
       .unique();
 
     if (existingPayment) {
@@ -103,31 +104,31 @@ export const submitApplicationFormMutation = mutation({
     try {
       // Create payment record
       const paymentId = await ctx.db.insert("payments", {
-        formId: args.formId,
+        applicationId: args.formId,
         amount: baseAmount,
         serviceFee: serviceFee,
         netAmount: totalAmount,
-        method: args.paymentMethod,
+        paymentMethod: args.paymentMethod,
         referenceNumber: args.paymentReferenceNumber,
-        receiptId: args.paymentReceiptId,
-        status: "Pending",
+        receiptStorageId: args.paymentReceiptId,
+        paymentStatus: "Pending",
         updatedAt: Date.now(),
       });
 
       // Update form status to Submitted
       await ctx.db.patch(args.formId, {
-        status: "Submitted",
+        applicationStatus: "Submitted",
         updatedAt: Date.now(),
       });
 
       // Create notification for user
       await ctx.db.insert("notifications", {
         userId: user._id,
-        formsId: args.formId,
+        applicationId: args.formId,
         title: "Application Submitted",
         message: `Application submitted successfully! Payment of ₱${totalAmount} via ${args.paymentMethod} is being processed. Reference: ${args.paymentReferenceNumber}`,
-        type: "PaymentReceived",
-        read: false,
+        notificationType: "PaymentReceived",
+        isRead: false,
       });
 
       // If orientation is required, create orientation record
@@ -136,26 +137,26 @@ export const submitApplicationFormMutation = mutation({
         const qrCode = `emedicard-orientation-${args.formId}-${Date.now()}`;
         
         await ctx.db.insert("orientations", {
-          formId: args.formId,
-          scheduleAt: orientationSchedule,
+          applicationId: args.formId,
+          scheduledAt: orientationSchedule,
           qrCodeUrl: qrCode,
-          status: "Scheduled",
+          orientationStatus: "Scheduled",
         });
 
         // Add orientation notification
         await ctx.db.insert("notifications", {
           userId: user._id,
-          formsId: args.formId,
+          applicationId: args.formId,
           title: "Orientation Scheduled",
           message: `Food safety orientation scheduled for ${new Date(orientationSchedule).toLocaleDateString()}. You will receive more details soon.`,
-          type: "OrientationScheduled",
-          read: false,
+          notificationType: "OrientationScheduled",
+          isRead: false,
         });
       }
 
       return {
         success: true,
-        formId: args.formId,
+        formId: args.formId, // This is still formId in the return object, which is fine as it's a local variable.
         paymentId,
         message: "Application submitted successfully! You will receive notifications about the processing status.",
         requiresOrientation: jobCategory.requireOrientation,

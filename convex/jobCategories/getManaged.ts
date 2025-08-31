@@ -12,13 +12,13 @@ export const get = query({
 
     if (adminPrivileges.managedCategories === "all") {
       // If "all", return all job categories
-      return await ctx.db.query("jobCategory").collect();
+      return await ctx.db.query("jobCategories").collect();
     } else if (adminPrivileges.managedCategories && adminPrivileges.managedCategories.length > 0) {
       // If specific categories are managed, fetch them
-      const managedCategoryIds = adminPrivileges.managedCategories as Id<"jobCategory">[];
-      const categories: Doc<"jobCategory">[] = [];
+      const managedCategoryIds = adminPrivileges.managedCategories as Id<"jobCategories">[];
+      const categories: Doc<"jobCategories">[] = [];
       for (const categoryId of managedCategoryIds) {
-        const category = await ctx.db.get(categoryId);
+        const category = await ctx.db.get(categoryId) as Doc<"jobCategories"> | null;
         if (category) {
           categories.push(category);
         }

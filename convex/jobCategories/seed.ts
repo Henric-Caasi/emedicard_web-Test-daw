@@ -9,7 +9,7 @@ export const seedJobCategories = mutation({
     ];
 
     for (const category of categories) {
-      await ctx.db.insert("jobCategory", category);
+      await ctx.db.insert("jobCategories", category);
     }
 
     return { success: true };

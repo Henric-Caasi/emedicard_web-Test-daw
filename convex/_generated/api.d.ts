@@ -13,13 +13,16 @@ import type {
   FilterApi,
   FunctionReference,
 } from "convex/server";
+import type * as admin_finalizeApplication from "../admin/finalizeApplication.js";
 import type * as admin_migrations from "../admin/migrations.js";
+import type * as admin_reviewDocument from "../admin/reviewDocument.js";
 import type * as admin_seed from "../admin/seed.js";
 import type * as admin from "../admin.js";
 import type * as applications_createForm from "../applications/createForm.js";
 import type * as applications_getById from "../applications/getById.js";
 import type * as applications_getFormById from "../applications/getFormById.js";
 import type * as applications_getUserApplications from "../applications/getUserApplications.js";
+import type * as applications_getWithDocuments from "../applications/getWithDocuments.js";
 import type * as applications_list from "../applications/list.js";
 import type * as applications_submitApplicationForm from "../applications/submitApplicationForm.js";
 import type * as applications_updateForm from "../applications/updateForm.js";
@@ -91,13 +94,16 @@ import type * as verification_verificationLogs from "../verification/verificatio
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  "admin/finalizeApplication": typeof admin_finalizeApplication;
   "admin/migrations": typeof admin_migrations;
+  "admin/reviewDocument": typeof admin_reviewDocument;
   "admin/seed": typeof admin_seed;
   admin: typeof admin;
   "applications/createForm": typeof applications_createForm;
   "applications/getById": typeof applications_getById;
   "applications/getFormById": typeof applications_getFormById;
   "applications/getUserApplications": typeof applications_getUserApplications;
+  "applications/getWithDocuments": typeof applications_getWithDocuments;
   "applications/list": typeof applications_list;
   "applications/submitApplicationForm": typeof applications_submitApplicationForm;
   "applications/updateForm": typeof applications_updateForm;

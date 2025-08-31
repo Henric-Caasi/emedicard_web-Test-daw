@@ -14,45 +14,45 @@ export const seedJobCategoriesAndRequirements = mutation({
       { name: "Skin-to-Skin Contact Worker", colorCode: "#FF69B4", requireOrientation: "No" },
     ];
 
-    const jobCategoryIds: Record<string, Id<"jobCategory">> = {};
+const jobCategoryIds: Record<string, Id<"jobCategories">> = {};
     for (const category of jobCategories) {
       const existing = await ctx.db
-        .query("jobCategory")
+        .query("jobCategories")
         .filter((q) => q.eq(q.field("name"), category.name))
         .first();
 
       if (existing) {
         jobCategoryIds[category.name] = existing._id;
       } else {
-        const id = await ctx.db.insert("jobCategory", category);
+        const id = await ctx.db.insert("jobCategories", category);
         jobCategoryIds[category.name] = id;
       }
     }
 
     //Insert document requirements
     const documentRequirements = [
-      { name: "Valid Government ID", fieldName: "validId", description: "Any valid government-issued ID", icon: "card-outline", required: true },
-      { name: "2x2 ID Picture", fieldName: "picture", description: "Recent colored 2x2 ID picture", icon: "camera-outline", required: true },
-      { name: "Chest X-ray", fieldName: "chestXrayId", description: "Recent chest X-ray result", icon: "medical-outline", required: true },
-      { name: "Urinalysis", fieldName: "urinalysisId", description: "Complete urinalysis test", icon: "flask-outline", required: true },
-      { name: "Stool Examination", fieldName: "stoolId", description: "Stool examination result", icon: "analytics-outline", required: true },
-      { name: "Cedula", fieldName: "cedulaId", description: "Community Tax Certificate", icon: "document-text-outline", required: true },
-      { name: "Drug Test", fieldName: "drugTestId", description: "Drug test result (for Security Guards)", icon: "shield-outline", required: false },
-      { name: "Neuropsychiatric Test", fieldName: "neuroExamId", description: "Neuropsychiatric evaluation (for Security Guards)", icon: "medical-outline", required: false },
-      { name: "Hepatitis B Antibody Test", fieldName: "hepatitisBId", description: "Hepatitis B surface antibody test result", icon: "shield-checkmark-outline", required: false },
+      { name: "Valid Government ID", fieldIdentifier: "validId", description: "Any valid government-issued ID", icon: "card-outline", isRequired: true },
+      { name: "2x2 ID Picture", fieldIdentifier: "picture", description: "Recent colored 2x2 ID picture", icon: "camera-outline", isRequired: true },
+      { name: "Chest X-ray", fieldIdentifier: "chestXrayId", description: "Recent chest X-ray result", icon: "medical-outline", isRequired: true },
+      { name: "Urinalysis", fieldIdentifier: "urinalysisId", description: "Complete urinalysis test", icon: "flask-outline", isRequired: true },
+      { name: "Stool Examination", fieldIdentifier: "stoolId", description: "Stool examination result", icon: "analytics-outline", isRequired: true },
+      { name: "Cedula", fieldIdentifier: "cedulaId", description: "Community Tax Certificate", icon: "document-text-outline", isRequired: true },
+      { name: "Drug Test", fieldIdentifier: "drugTestId", description: "Drug test result (for Security Guards)", icon: "shield-outline", isRequired: false },
+      { name: "Neuropsychiatric Test", fieldIdentifier: "neuroExamId", description: "Neuropsychiatric evaluation (for Security Guards)", icon: "medical-outline", isRequired: false },
+      { name: "Hepatitis B Antibody Test", fieldIdentifier: "hepatitisBId", description: "Hepatitis B surface antibody test result", icon: "shield-checkmark-outline", isRequired: false },
     ];
 
-    const documentIds: Record<string, Id<"documentRequirements">> = {};
+    const documentIds: Record<string, Id<"documentTypes">> = {};
     for (const doc of documentRequirements) {
       const existing = await ctx.db
-        .query("documentRequirements")
-        .withIndex("by_field_name", (q) => q.eq("fieldName", doc.fieldName))
+        .query("documentTypes")
+        .withIndex("by_field_identifier", (q) => q.eq("fieldIdentifier", doc.fieldIdentifier))
         .first();
 
       if (existing) {
         documentIds[doc.name] = existing._id;
       } else {
-        const id = await ctx.db.insert("documentRequirements", doc);
+        const id = await ctx.db.insert("documentTypes", doc);
         documentIds[doc.name] = id;
       }
     }
@@ -93,20 +93,20 @@ export const seedJobCategoriesAndRequirements = mutation({
     for (const [categoryName, reqList] of Object.entries(categoryRequirementMap)) {
       const jobCategoryId = jobCategoryIds[categoryName];
       for (const req of reqList) {
-        const documentRequirementId = documentIds[req.name];
+        const documentTypeId = documentIds[req.name];
 
         // Check if link already exists
         const existing = await ctx.db
-          .query("jobCategoryRequirements")
-          .withIndex("by_category", (q) => q.eq("jobCategoryId", jobCategoryId))
+          .query("jobCategoryDocuments")
+          .withIndex("by_job_category", (q) => q.eq("jobCategoryId", jobCategoryId))
           .collect();
 
-        const alreadyLinked = existing.some((e) => e.documentRequirementId === documentRequirementId);
+        const alreadyLinked = existing.some((e) => e.documentTypeId === documentTypeId);
         if (!alreadyLinked) {
-          await ctx.db.insert("jobCategoryRequirements", {
+          await ctx.db.insert("jobCategoryDocuments", {
             jobCategoryId,
-            documentRequirementId,
-            required: req.required,
+            documentTypeId,
+            isRequired: req.required,
           });
           linkedCount++;
         }
@@ -124,13 +124,13 @@ export const seedJobCategoriesAndRequirements = mutation({
 export const clearSeedData = mutation({
   args: {},
   handler: async (ctx) => {
-    const links = await ctx.db.query("jobCategoryRequirements").collect();
+    const links = await ctx.db.query("jobCategoryDocuments").collect();
     for (const link of links) await ctx.db.delete(link._id);
 
-    const docs = await ctx.db.query("documentRequirements").collect();
+    const docs = await ctx.db.query("documentTypes").collect();
     for (const doc of docs) await ctx.db.delete(doc._id);
 
-    const categories = await ctx.db.query("jobCategory").collect();
+    const categories = await ctx.db.query("jobCategories").collect();
     for (const cat of categories) await ctx.db.delete(cat._id);
 
     return {
@@ -143,4 +143,3 @@ export const clearSeedData = mutation({
     };
   },
 });
-
