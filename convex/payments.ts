@@ -27,3 +27,10 @@ export const updateStatus = mutation({
     return { success: true };
   },
 });
+
+export const getReceiptUrl = query({
+  args: { storageId: v.id("_storage") },
+  handler: async (ctx, { storageId }) => {
+    return await ctx.storage.getUrl(storageId);
+  },
+});

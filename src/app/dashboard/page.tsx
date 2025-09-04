@@ -71,6 +71,20 @@ export default function DashboardPage() {
   const totalForPaymentValidation = (applications ?? []).filter((a: ApplicationWithDetails) => a.applicationStatus === 'For Payment Validation').length;
   const totalForOrientation = (applications ?? []).filter((a: ApplicationWithDetails) => a.applicationStatus === 'For Orientation').length;
 
+  const getContinuationUrl = (status: string, appId: Id<"applications">): string => {
+    switch (status) {
+      case "For Payment Validation":
+        return `/dashboard/${appId}/payment_validation`;
+      case "For Document Verification":
+        return `/dashboard/${appId}/doc_verif`;
+      case "For Orientation":
+        return `/dashboard/${appId}/orientation-scheduler`;
+      default:
+        // For all other statuses (Submitted, Approved, etc.), link to the document verification page as a default view.
+        return `/dashboard/${appId}/doc_verif`;
+    }
+  };
+
   // --- 5. LOADING & GUARD CLAUSES ---
   if (!isClerkLoaded || adminPrivileges === undefined) {
     return <div className="min-h-screen bg-gray-50 flex items-center justify-center">Loading...</div>;
@@ -87,7 +101,7 @@ export default function DashboardPage() {
   // --- 6. RENDER THE DASHBOARD ---
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Navbar */}
+      {/*Navbar */}
       <nav className="bg-white shadow-md w-full sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           <div className="flex items-center space-x-3">
@@ -104,15 +118,16 @@ export default function DashboardPage() {
         </div>
       </nav>
       
-      <main className="max-w-6xl mx-auto py-10 px-4">
-        {/* Stats Row */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-10">
-          <div className="bg-white border rounded-lg p-4 text-center"><div className="text-xl text-black font-bold">{totalPending}</div><div className="text-xs text-gray-500">Total Pending</div></div>
-          <div className="bg-white border rounded-lg p-4 text-center"><div className="text-xl text-black font-bold">{totalForDocVerification}</div><div className="text-xs text-gray-500">For Document Verification</div></div>
-          <div className="bg-white border rounded-lg p-4 text-center"><div className="text-xl text-black font-bold">{totalForPaymentValidation}</div><div className="text-xs text-gray-500">For Payment Validation</div></div>
-          <div className="bg-white border rounded-lg p-4 text-center"><div className="text-xl text-black font-bold">{totalForOrientation}</div><div className="text-xs text-gray-500">For Orientation</div></div>
-          <div className="bg-white border rounded-lg p-4 text-center"><div className="text-xl text-black font-bold">{totalApproved}</div><div className="text-xs text-gray-500">Approved</div></div>
-        </div>
+<main className="max-w-6xl mx-auto py-10 px-4">
+    {/* Stats Row */}
+    <div className="grid grid-cols-2 sm:grid-cols-6 gap-4 mb-10">
+      <div className="bg-white border rounded-lg p-4 text-center"><div className="text-xl text-black font-bold">{totalPending}</div><div className="text-xs text-gray-500">Total Pending</div></div>
+      <div className="bg-white border rounded-lg p-4 text-center"><div className="text-xl text-black font-bold">{totalForDocVerification}</div><div className="text-xs text-gray-500">For Document Verification</div></div>
+      <div className="bg-white border rounded-lg p-4 text-center"><div className="text-xl text-black font-bold">{totalForPaymentValidation}</div><div className="text-xs text-gray-500">For Payment Validation</div></div>
+      <div className="bg-white border rounded-lg p-4 text-center"><div className="text-xl text-black font-bold">{totalForOrientation}</div><div className="text-xs text-gray-500">For Orientation</div></div>
+      <div className="bg-white border rounded-lg p-4 text-center"><div className="text-xl text-black font-bold">{totalApproved}</div><div className="text-xs text-gray-500">Approved</div></div>
+      <div className="bg-white border rounded-lg p-4 text-center"><div className="text-xl text-black font-bold">{totalRejected}</div><div className="text-xs text-gray-500">Rejected</div></div>
+    </div>
 
         {/* Controls Row */}
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
@@ -122,7 +137,7 @@ export default function DashboardPage() {
               <label className="block text-sm font-semibold text-gray-700 mb-1">Job Category</label>
               {adminPrivileges.managedCategories === "all" ? (
                 <select 
-                  className="px-4 py-2 pr-10 border border-gray-300 text-black rounded-lg shadow-sm text-base focus:outline-none focus:ring-2 focus:ring-emerald-500" 
+                  className="px-4 py-2 pr-10 border border-gray-300 text-black rounded-lg shadow-sm text-base focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   value={categoryFilter} 
                   onChange={e => setCategoryFilter(e.target.value as Id<"jobCategories"> | "")}
                   disabled={managedJobCategories === undefined}
@@ -198,7 +213,7 @@ export default function DashboardPage() {
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <Link href={`/dashboard/${app._id}/doc_verif`} className="text-emerald-600 underline font-semibold hover:text-emerald-800 text-sm">
+                    <Link href={getContinuationUrl(app.applicationStatus, app._id)} className="text-emerald-600 underline font-semibold hover:text-emerald-800 text-sm">
                       View
                     </Link>
                   </td>

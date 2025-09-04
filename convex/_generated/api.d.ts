@@ -17,6 +17,7 @@ import type * as admin_finalizeApplication from "../admin/finalizeApplication.js
 import type * as admin_migrations from "../admin/migrations.js";
 import type * as admin_reviewDocument from "../admin/reviewDocument.js";
 import type * as admin_seed from "../admin/seed.js";
+import type * as admin_validatePayment from "../admin/validatePayment.js";
 import type * as admin from "../admin.js";
 import type * as applications_createForm from "../applications/createForm.js";
 import type * as applications_getById from "../applications/getById.js";
@@ -26,7 +27,9 @@ import type * as applications_getWithDocuments from "../applications/getWithDocu
 import type * as applications_list from "../applications/list.js";
 import type * as applications_submitApplicationForm from "../applications/submitApplicationForm.js";
 import type * as applications_updateForm from "../applications/updateForm.js";
+import type * as dashboard_getActivityLog from "../dashboard/getActivityLog.js";
 import type * as dashboard_getDashboardData from "../dashboard/getDashboardData.js";
+import type * as documentUploads_getReviewedDocumentsWithDetails from "../documentUploads/getReviewedDocumentsWithDetails.js";
 import type * as documents from "../documents.js";
 import type * as healthCards_getByFormId from "../healthCards/getByFormId.js";
 import type * as healthCards_getByVerificationToken from "../healthCards/getByVerificationToken.js";
@@ -48,7 +51,9 @@ import type * as notifications_markAsRead from "../notifications/markAsRead.js";
 import type * as orientations_getUserOrientations from "../orientations/getUserOrientations.js";
 import type * as orientations from "../orientations.js";
 import type * as payments_createPayment from "../payments/createPayment.js";
+import type * as payments_getForApplication from "../payments/getForApplication.js";
 import type * as payments_getPaymentByFormId from "../payments/getPaymentByFormId.js";
+import type * as payments_getPaymentReceiptUrl from "../payments/getPaymentReceiptUrl.js";
 import type * as payments_getUserPayments from "../payments/getUserPayments.js";
 import type * as payments_updatePaymentStatus from "../payments/updatePaymentStatus.js";
 import type * as payments from "../payments.js";
@@ -98,6 +103,7 @@ declare const fullApi: ApiFromModules<{
   "admin/migrations": typeof admin_migrations;
   "admin/reviewDocument": typeof admin_reviewDocument;
   "admin/seed": typeof admin_seed;
+  "admin/validatePayment": typeof admin_validatePayment;
   admin: typeof admin;
   "applications/createForm": typeof applications_createForm;
   "applications/getById": typeof applications_getById;
@@ -107,7 +113,9 @@ declare const fullApi: ApiFromModules<{
   "applications/list": typeof applications_list;
   "applications/submitApplicationForm": typeof applications_submitApplicationForm;
   "applications/updateForm": typeof applications_updateForm;
+  "dashboard/getActivityLog": typeof dashboard_getActivityLog;
   "dashboard/getDashboardData": typeof dashboard_getDashboardData;
+  "documentUploads/getReviewedDocumentsWithDetails": typeof documentUploads_getReviewedDocumentsWithDetails;
   documents: typeof documents;
   "healthCards/getByFormId": typeof healthCards_getByFormId;
   "healthCards/getByVerificationToken": typeof healthCards_getByVerificationToken;
@@ -129,7 +137,9 @@ declare const fullApi: ApiFromModules<{
   "orientations/getUserOrientations": typeof orientations_getUserOrientations;
   orientations: typeof orientations;
   "payments/createPayment": typeof payments_createPayment;
+  "payments/getForApplication": typeof payments_getForApplication;
   "payments/getPaymentByFormId": typeof payments_getPaymentByFormId;
+  "payments/getPaymentReceiptUrl": typeof payments_getPaymentReceiptUrl;
   "payments/getUserPayments": typeof payments_getUserPayments;
   "payments/updatePaymentStatus": typeof payments_updatePaymentStatus;
   payments: typeof payments;

@@ -1,36 +1,12 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-
-// --- Dummy Data for the Audit Log ---
-// In a real app, this data would be fetched from your backend.
-const recentActivities = [
-  {
-    id: 1,
-    adminName: 'Rogel Henric',
-    applicantName: 'Maria Clara',
-    action: 'Approved Application',
-    timestamp: new Date(Date.now() - 3600 * 1000 * 1), // 1 hour ago
-  },
-  {
-    id: 2,
-    adminName: 'rokuzen26@emedicard.com',
-    applicantName: 'Sean Maynard',
-    action: 'Rejected Document',
-    timestamp: new Date(Date.now() - 3600 * 1000 * 3), // 3 hours ago
-  },
-  {
-    id: 3,
-    adminName: 'Rogel Henric',
-    applicantName: 'KenKen Gwapo',
-    action: 'Scheduled Orientation',
-    timestamp: new Date(Date.now() - 3600 * 1000 * 8), // 8 hours ago
-  },
-];
+import { useQuery } from 'convex/react';
+import { api } from '@/convex/_generated/api';
 
 // Helper to format time nicely (e.g., "1 hour ago")
-const timeAgo = (date: Date): string => {
-  const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+const timeAgo = (date: number): string => {
+  const seconds = Math.floor((Date.now() - date) / 1000);
   let interval = seconds / 31536000;
   if (interval > 1) return Math.floor(interval) + " years ago";
   interval = seconds / 2592000;
@@ -47,6 +23,7 @@ const timeAgo = (date: Date): string => {
 export default function DashboardActivityLog() {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const recentActivities = useQuery(api.dashboard.getActivityLog.get);
 
   // Logic to close dropdown when clicking outside
   useEffect(() => {
@@ -78,16 +55,18 @@ export default function DashboardActivityLog() {
       {isOpen && (
         <div className="absolute right-0 mt-2 w-80 origin-top-right rounded-xl bg-white shadow-lg ring-1 ring-black ring-opacity-5">
           <div className="p-4 border-b border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-900">Recent Admin Activity</h3>
-            <p className="text-sm text-gray-500">A log of recent verifications.</p>
+            <h3 className="text-lg font-semibold text-gray-900">Recent Activity</h3>
+            <p className="text-sm text-gray-500">A log of recent admin activities.</p>
           </div>
           <div className="py-2 max-h-96 overflow-y-auto">
-            {recentActivities.map(activity => (
-              <div key={activity.id} className="px-4 py-3 hover:bg-gray-50">
+            {recentActivities === undefined && <div className="p-4 text-sm text-gray-500">Loading...</div>}
+            {recentActivities && recentActivities.length === 0 && <div className="p-4 text-sm text-gray-500">No recent activity.</div>}
+            {recentActivities && recentActivities.filter(Boolean).map(activity => (
+              <div key={activity!.id} className="px-4 py-3 hover:bg-gray-50">
                 <p className="text-sm font-medium text-gray-800">
-                  <span className="font-bold">{activity.adminName}</span> {activity.action.toLowerCase()} for <span className="font-bold">{activity.applicantName}</span>.
+                  <span className="font-bold">{activity!.adminName}</span> {activity!.action.toLowerCase()} for <span className="font-bold">{activity!.applicantName}</span>.
                 </p>
-                <p className="text-xs text-gray-400 mt-1">{timeAgo(activity.timestamp)}</p>
+                <p className="text-xs text-gray-400 mt-1">{timeAgo(activity!.timestamp || 0)}</p>
               </div>
             ))}
           </div>

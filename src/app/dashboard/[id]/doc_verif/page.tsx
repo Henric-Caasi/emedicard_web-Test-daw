@@ -16,21 +16,18 @@ import ErrorMessage from '@/components/ErrorMessage';
 // --- Data Structures ---
 interface AppError { title: string; message: string; }
 const createAppError = (message: string, title: string = 'Invalid Input'): AppError => ({ title, message });
-type ActivityLog = { timestamp: Date; adminName: string; action: string; details: string; };
 const remarkOptions = [ 'Invalid Government-issued ID', 'Missing Documents Request', 'Unclear Drug Test Results', 'Medical Follow-up Required', 'Others' ];
 
 type PageProps = { params: Promise<{ id: Id<'applications'> }> };
 
 export default function DocumentVerificationPage({ params: paramsPromise }: PageProps) {
   const params = React.use(paramsPromise);
-  const { user } = useUser(); // For activity log admin name
   // --- STATE MANAGEMENT ---
   const [viewModalDocUrl, setViewModalDocUrl] = useState<string | null>(null);
   // NEW: State for error messages, connected to your component
   const [error, setError] = useState<AppError | null>(null); // Use AppError type
   const [openRemarkIndex, setOpenRemarkIndex] = useState<number | null>(null);
   const [selectedRemark, setSelectedRemark] = useState<string>('');
-  const [activityLog, setActivityLog] = useState<ActivityLog[]>([]); // For activity log
   const router = useRouter();
 
   // --- DATA FETCHING ---
@@ -39,12 +36,6 @@ export default function DocumentVerificationPage({ params: paramsPromise }: Page
   const finalizeApplication = useMutation(api.admin.finalizeApplication.finalize);
 
   // --- HANDLER FUNCTIONS ---
-  const addLogEntry = (action: string, details: string) => {
-    const adminName = user?.fullName || user?.primaryEmailAddress?.emailAddress || 'Unknown Admin';
-    const newLog: ActivityLog = { timestamp: new Date(), adminName, action, details };
-    setActivityLog(prevLog => [newLog, ...prevLog]);
-  };
-
   const handleStatusChange = async (index: number, uploadId: Id<'documentUploads'>, newStatus: 'Approved' | 'Rejected') => {
     setError(null); // Clear any previous errors when the user takes an action
     if (newStatus === 'Rejected') {
@@ -53,7 +44,6 @@ export default function DocumentVerificationPage({ params: paramsPromise }: Page
     } else {
       setOpenRemarkIndex(null); // Close remark card if approved
       await reviewDocument({ documentUploadId: uploadId, status: newStatus, remarks: "" });
-      addLogEntry('Document Approved', `Set status of "${data?.checklist[index].requirementName}" to Approved.`);
     }
   };
 
@@ -69,10 +59,14 @@ export default function DocumentVerificationPage({ params: paramsPromise }: Page
         throw new Error("To reject the application, at least one document must be marked as 'Rejected'.");
       }
 
-      await finalizeApplication({ applicationId: params.id, newStatus });
-      alert(`Application has been successfully ${newStatus.toLowerCase()}.`);
-      router.push('/dashboard');
-    } catch (e: any) {
+await finalizeApplication({ applicationId: params.id, newStatus });
+  alert(`Application has been successfully ${newStatus.toLowerCase()}.`);
+  if (newStatus === 'Approved') {
+    router.push(`/dashboard/${params.id}/payment_validation`);
+  } else {
+    router.push('/dashboard');
+  }
+} catch (e: any) {
       // This is where we "turn on the warning light"
       setError({ title: "Validation Failed", message: e.message });
     }
@@ -92,7 +86,7 @@ export default function DocumentVerificationPage({ params: paramsPromise }: Page
             <span className="text-2xl font-bold text-gray-800">eMediCard</span>
           </Link>
           <div className="flex items-center gap-5">
-            <ApplicantActivityLog applicantName={data.applicantName} activityLog={activityLog} />
+            <ApplicantActivityLog applicantName={data.applicantName} applicationId={params.id} />
             <CustomUserButton />
           </div>
         </div>
@@ -170,7 +164,6 @@ export default function DocumentVerificationPage({ params: paramsPromise }: Page
                                 try {
                                   if (!selectedRemark) throw new Error("Please select a remark before saving.");
                                   await reviewDocument({ documentUploadId: item.uploadId!, status: 'Rejected', remarks: selectedRemark });
-                                  addLogEntry('Remark Saved', `Added remark "${selectedRemark}" to document "${item.requirementName}".`);
                                   setOpenRemarkIndex(null);
                                   setError(null);
                                 } catch (e: any) {
